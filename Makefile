@@ -41,8 +41,21 @@ check: fmt lint
 tidy: ## Tidy up go modules
 	go mod tidy
 
+.PHONY: vendor
+vendor: ## Vendor modules locally
+	go mod vendor
+
 .PHONY: setup
 setup: ## Setup project
-setup: clean install tidy
+setup: clean install tidy vendor
 
+.PHONY: tests
+tests: ## Unit tests
+tests:
+	go test -v ./...
 
+.PHONY: build
+build: ## Build both client and server projects for WIN os
+build:
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -v -o $(BUILD)/$(CLIENT_NAME).exe $(CURDIR)/cmd/$(CLIENT_NAME)/main.go
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -v -o $(BUILD)/$(SERVER_NAME).exe $(CURDIR)/cmd/$(SERVER_NAME)/main.go
