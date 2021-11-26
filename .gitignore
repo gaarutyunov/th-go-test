@@ -17,8 +17,8 @@
 
 .idea
 .vscode
-/build
-/bin
+build/
+bin/
 dist/
 
 .DS_Store

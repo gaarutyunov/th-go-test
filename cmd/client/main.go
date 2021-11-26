@@ -1,13 +1,7 @@
 package main
 
-import (
-	"th-go-test/internal"
-	"th-go-test/pkg/hello"
-)
+import "th-go-test/internal/client"
 
 func main() {
-	hello.Println("client")
-	if err := internal.PrintTask(); err != nil {
-		panic(err)
-	}
+	client.Run()
 }
