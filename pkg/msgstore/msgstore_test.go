@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestNewAddGetMessage(t *testing.T) {
+func TestNewAddGet(t *testing.T) {
 	// New
 	ms := New()
 

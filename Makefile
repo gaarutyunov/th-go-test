@@ -6,7 +6,7 @@ GOBIN=$(shell pwd)/bin
 
 .PHONY: help
 help: ## Show help dialog
-	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
+	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/\s*##/\t/'
 
 .PHONY: install
 install: ## Install dependencies
@@ -14,11 +14,11 @@ install: ## Install dependencies
 
 .PHONY: build-client
 build-client: ## Build client project
-	go build -o $(BUILD)/$(CLIENT_NAME) $(CURDIR)/cmd/$(CLIENT_NAME)/main.go
+	CGO_ENABLED=0 go build -o $(BUILD)/$(CLIENT_NAME) $(CURDIR)/cmd/$(CLIENT_NAME)/main.go
 
 .PHONY: build-server
 build-server: ## Build server project
-	go build -o $(BUILD)/$(SERVER_NAME) $(CURDIR)/cmd/$(SERVER_NAME)/main.go
+	CGO_ENABLED=0 go build -o $(BUILD)/$(SERVER_NAME) $(CURDIR)/cmd/$(SERVER_NAME)/main.go
 
 .PHONY: clean
 clean: ## Clean project
@@ -55,7 +55,7 @@ tests:
 	go test -v ./...
 
 .PHONY: build
-build: ## Build both client and server projects for WIN os
+build: ## Build both client and server projects for WINDOWS OS
 build:
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -v -o $(BUILD)/$(CLIENT_NAME).exe $(CURDIR)/cmd/$(CLIENT_NAME)/main.go
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -v -o $(BUILD)/$(SERVER_NAME).exe $(CURDIR)/cmd/$(SERVER_NAME)/main.go
