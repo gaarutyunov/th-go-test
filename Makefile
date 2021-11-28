@@ -49,9 +49,9 @@ vendor: ## Vendor modules locally
 setup: ## Setup project
 setup: clean install tidy vendor
 
-.PHONY: tests
-tests: ## Unit tests
-tests:
+.PHONY: test
+test: ## Unit tests
+test:
 	go test -v ./...
 
 .PHONY: build
