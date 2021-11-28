@@ -2,7 +2,9 @@ package msgstore
 
 import (
 	"fmt"
+	"os"
 	"sync"
+	"th-go-test/pkg/persist"
 )
 
 // MsgLimit Лимит для сообщений в хранилище
@@ -72,4 +74,35 @@ func (ms *MsgStore) GetMessages(owner string) []Message {
 
 func (ms *MsgStore) Length() int {
 	return len(ms.messages)
+}
+
+func (ms *MsgStore) SaveMessages(path string) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	close(ms.messages)
+	var t []Message
+
+	for msg := range ms.messages {
+		t = append(t, msg)
+	}
+
+	return persist.Save(path, &t)
+}
+
+func (ms *MsgStore) LoadMessages(path string) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	var t []Message
+
+	if err := persist.Load(path, &t); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	for _, msg := range t {
+		ms.messages <- msg
+	}
+
+	return nil
 }

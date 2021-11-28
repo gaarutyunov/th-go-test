@@ -2,16 +2,18 @@ package server
 
 import (
 	"context"
+	"log"
 	"net/http"
-	"time"
-
 	"th-go-test/pkg/msgstore"
+	"time"
 )
 
 type Server struct {
 	httpServer *http.Server
 	storage    *msgstore.MsgStore
 }
+
+const dataPath = "./server.json"
 
 func NewServer() *Server {
 	storage := msgstore.New()
@@ -31,9 +33,21 @@ func NewServer() *Server {
 }
 
 func (s *Server) Start() error {
+	if err := s.storage.LoadMessages(dataPath); err != nil {
+		log.Printf("Error loading messages: %s", err.Error())
+	} else {
+		log.Printf("Loaded %d messages", s.storage.Length())
+	}
+
 	return s.httpServer.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
+	if err := s.storage.SaveMessages(dataPath); err != nil {
+		log.Printf("Error saving messages: %s", err.Error())
+	} else {
+		log.Printf("Saved %d messages", s.storage.Length())
+	}
+
 	return s.httpServer.Shutdown(ctx)
 }

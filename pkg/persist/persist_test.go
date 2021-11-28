@@ -25,7 +25,7 @@ func NewTestStruct() *TestStruct {
 func TestSave(t *testing.T) {
 	obj := NewTestStruct()
 
-	if err := Save(TestFilePath, obj); err != nil {
+	if err := Save(TestFilePath, &obj); err != nil {
 		t.Fatalf("error saving v, want no error")
 	}
 }
@@ -47,11 +47,11 @@ func TestLoad(t *testing.T) {
 func TestClean(t *testing.T) {
 	f, err := os.Open(TestFilePath)
 	if os.IsNotExist(err) {
-		t.Fatalf("error test.json not found")
+		t.Fatalf("error %s not found", TestFilePath)
 	}
 	_ = f.Close()
 
 	if err := os.Remove(TestFilePath); err != nil {
-		t.Fatalf("error removing test.json")
+		t.Fatalf("error removing %s", TestFilePath)
 	}
 }
