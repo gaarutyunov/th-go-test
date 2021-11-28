@@ -6,11 +6,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
 
 func Run() {
+	// Change working directory to PWD
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	if err := os.Chdir(exPath); err != nil {
+		panic(err)
+	}
+	log.Printf("Working directory is %s", exPath)
+
 	srv := NewServer()
 
 	// Goroutine with a server
