@@ -10,25 +10,21 @@ const MsgLimit = 10
 
 // Message Прототип сообщения
 type Message struct {
-	ID      int    `json:"id"`
-	OwnerID string `json:"owner_id"`
-	Message string `json:"message"`
+	PersonID string `json:"person_id"`
+	Message  string `json:"message"`
 }
 
 // MsgStore Простое хранилище сообщений в памяти, безопасно для конкурентного доступа
-// TODO по ТЗ переделать на chan?
 type MsgStore struct {
 	sync.Mutex
 
-	messages map[int]Message
-	nextID   int
+	messages chan Message
 }
 
 // New Конструктор экземпляра хранилище сообщений
 func New() *MsgStore {
 	ms := &MsgStore{}
-	ms.messages = make(map[int]Message)
-	ms.nextID = 0
+	ms.messages = make(chan Message, MsgLimit)
 
 	return ms
 }
@@ -38,18 +34,16 @@ func (ms *MsgStore) AddMessage(text, owner string) error {
 	ms.Lock()
 	defer ms.Unlock()
 
-	if len(ms.messages) >= MsgLimit {
+	if len(ms.messages) >= cap(ms.messages) {
 		return fmt.Errorf("messages limit reached, no more space")
 	}
 
 	msg := Message{
-		ID:      ms.nextID,
-		OwnerID: owner,
-		Message: text,
+		PersonID: owner,
+		Message:  text,
 	}
 
-	ms.messages[ms.nextID] = msg
-	ms.nextID++
+	ms.messages <- msg
 
 	return nil
 }
@@ -59,14 +53,23 @@ func (ms *MsgStore) GetMessages(owner string) []Message {
 	ms.Lock()
 	defer ms.Unlock()
 
-	var messages []Message
+	close(ms.messages)
+	t := make(chan Message, cap(ms.messages))
 
-	for idx, msg := range ms.messages {
-		if owner == msg.OwnerID {
+	var messages []Message
+	for msg := range ms.messages {
+		if owner == msg.PersonID {
 			messages = append(messages, msg)
-			delete(ms.messages, idx)
+		} else {
+			t <- msg
 		}
 	}
 
+	ms.messages = t
+
 	return messages
+}
+
+func (ms *MsgStore) Length() int {
+	return len(ms.messages)
 }
