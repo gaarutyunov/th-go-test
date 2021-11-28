@@ -31,7 +31,7 @@ dloop:
 		switch {
 		case d.PersonID == "":
 			d.Identify()
-		case d.Choice != "Q":
+		case d.Choice != "Q" && d.Choice != "q":
 			d.Choose()
 		default:
 			break dloop

@@ -1,47 +1,30 @@
 package client
 
 import (
-	"bufio"
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
-	"os"
-	"strings"
 )
 
 type MsgDialog struct {
-	conn  *http.Client
-	input *bufio.Reader
-
+	conn     *http.Client
 	PersonID string
 	Choice   string
 }
 
+const serverURL = "http://localhost:8080/"
+
 func NewMsgDialog(connection *http.Client) *MsgDialog {
 	return &MsgDialog{
-		conn:  connection,
-		input: bufio.NewReader(os.Stdin),
+		conn: connection,
 	}
 }
 
-//TODO Clear очищает экран, понадобится?
-//func (d *MsgDialog) Clear() {
-//	switch runtime.GOOS {
-//	case "linux":
-//		cmd := exec.Command("clear")
-//		cmd.Stdout = os.Stdout
-//		cmd.Run()
-//	case "windows":
-//		cmd := exec.Command("cmd", "/c", "cls")
-//		cmd.Stdout = os.Stdout
-//		cmd.Run()
-//	}
-//}
-
 func (d *MsgDialog) Identify() {
 	fmt.Print("Name yourself: ")
-	d.PersonID, _ = d.input.ReadString('\n')
+	fmt.Scanln(&d.PersonID)
 }
 
 func (d *MsgDialog) Choose() {
@@ -52,48 +35,102 @@ func (d *MsgDialog) Choose() {
 		"Choose: "
 
 	fmt.Printf(menu)
-	if str, _ := d.input.ReadString('\n'); len(str) > 0 {
-		d.Choice = strings.ToUpper(string(str[0]))
-	} else {
-		d.Choice = ""
-	}
+	fmt.Scanln(&d.Choice)
 
 	switch d.Choice {
 	case "1":
-		// TODO
-		fmt.Println("< 1")
+		fmt.Printf("Enter a message: ")
+		var text string
+		fmt.Scanln(&text)
+		if err := d.putMessage(text); err != nil {
+			fmt.Printf("%s\n\n", err.Error())
+		}
 	case "2":
-		// TODO
-		fmt.Println("< 2")
+		msgs, err := d.getAllMesages()
+		if err != nil {
+			fmt.Printf("%s\n\n", err.Error())
+		}
+		for idx, msg := range msgs {
+			fmt.Printf("[%2d]: %s\n", idx, msg)
+		}
 	}
 }
 
-func (d *MsgDialog) communicate(message string) ([]byte, error) {
-	// Testing
-	res, err := http.Get("http://localhost:8080/")
-	if err != nil {
-		log.Fatal(err)
-	}
-	body, err := io.ReadAll(res.Body)
-	res.Body.Close()
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return body, nil
-}
+var ErrInsufficientStorage = errors.New("insufficient storage")
+var ErrServerDown = errors.New("server down")
 
 func (d *MsgDialog) putMessage(text string) error {
-	// TODO store in dialog queue, communicate with server, handle errors
-	return nil
+	type JSONRequest struct {
+		PersonID string `json:"person_id"`
+		Message  string `json:"message"`
+	}
+
+	jr := &JSONRequest{
+		PersonID: d.PersonID,
+		Message:  text,
+	}
+
+	payloadBuf := new(bytes.Buffer)
+	json.NewEncoder(payloadBuf).Encode(jr)
+	req, err := http.NewRequest(http.MethodPut, serverURL, payloadBuf)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := d.conn.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 507:
+		return ErrInsufficientStorage
+	case 200:
+		return nil
+	default:
+		return ErrServerDown
+	}
 }
 
 func (d *MsgDialog) getAllMesages() ([]string, error) {
 	// TODO communicate with server, return messages, handle errors
-	var messages []string
+	type JSONRequest struct {
+		PersonID string `json:"person_id"`
+	}
 
-	return messages, nil
+	jr := &JSONRequest{
+		PersonID: d.PersonID,
+	}
+
+	payloadBuf := new(bytes.Buffer)
+	json.NewEncoder(payloadBuf).Encode(jr)
+	req, err := http.NewRequest(http.MethodGet, serverURL, payloadBuf)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := d.conn.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	type JSONResponse struct {
+		Messages []string `json:"messages"`
+	}
+
+	var jw JSONResponse
+	if err := json.NewDecoder(res.Body).Decode(&jw); err != nil {
+		return nil, err
+	}
+
+	switch res.StatusCode {
+	case 200:
+		return jw.Messages, nil
+	default:
+		return nil, ErrServerDown
+	}
 }

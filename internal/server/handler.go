@@ -58,7 +58,7 @@ func (h *MsgHandler) getMessages(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 
-	jw := JSONResponse{}
+	jw := &JSONResponse{}
 	for _, msg := range h.storage.GetMessages(jr.PersonID) {
 		jw.Messages = append(jw.Messages, msg.Message)
 	}

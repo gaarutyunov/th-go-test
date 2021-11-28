@@ -16,12 +16,12 @@ func Run() {
 	usrQuit := make(chan os.Signal, 1)
 
 	// Goroutine with a client
-	go func() {
+	go func(c chan os.Signal) {
 		if err := cln.Start(); err != nil && err != ErrClientClosed {
 			log.Fatalf("failed to start client: %s", err.Error())
 		}
-		usrQuit <- syscall.SIGQUIT
-	}()
+		c <- syscall.SIGQUIT
+	}(usrQuit)
 
 	log.Printf("Client started\n")
 
