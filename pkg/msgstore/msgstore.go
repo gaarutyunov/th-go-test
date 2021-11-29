@@ -37,7 +37,7 @@ func (ms *MsgStore) AddMessage(text, owner string) error {
 	defer ms.Unlock()
 
 	if len(ms.messages) >= cap(ms.messages) {
-		return fmt.Errorf("messages limit reached, no more space")
+		return fmt.Errorf("msgstore: limit reached, no more space")
 	}
 
 	msg := Message{
@@ -72,10 +72,12 @@ func (ms *MsgStore) GetMessages(owner string) []Message {
 	return messages
 }
 
+// Length Возвращает текущую длину очереди сообщений
 func (ms *MsgStore) Length() int {
 	return len(ms.messages)
 }
 
+// SaveMessages Сохраняет сообщения из хранилища в файл
 func (ms *MsgStore) SaveMessages(path string) error {
 	ms.Lock()
 	defer ms.Unlock()
@@ -90,6 +92,7 @@ func (ms *MsgStore) SaveMessages(path string) error {
 	return persist.Save(path, &t)
 }
 
+// LoadMessages Загружает сообщения из файла в хранилище
 func (ms *MsgStore) LoadMessages(path string) error {
 	ms.Lock()
 	defer ms.Unlock()
