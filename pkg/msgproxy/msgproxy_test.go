@@ -1,7 +1,15 @@
 package msgproxy
 
-import "testing"
+import (
+	"net/http"
+	"testing"
+)
 
 func TestNewAddGet(t *testing.T) {
-	// Placeholder
+	// New
+	mp := New(&http.Client{})
+
+	if l := len(mp.messages); l > 0 {
+		t.Errorf("got len(messages)=%d, want 0", l)
+	}
 }

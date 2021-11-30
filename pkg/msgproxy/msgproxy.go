@@ -28,17 +28,22 @@ func New(connector *http.Client) *MsgProxy {
 	mp := &MsgProxy{
 		connector: connector,
 	}
-	mp.messages = make(chan Message, 1)
+	// Unbuffered (blocking) channel
+	mp.messages = make(chan Message)
 
 	return mp
 }
 
 // AddMessage Добавляет сообщение в прокси-очередь сообщений с сохранением владельца, ждёт отправки на сервер
 func (mp *MsgProxy) AddMessage(text, owner string) {
-	mp.messages <- Message{
-		PersonID: owner,
-		Message:  text,
-	}
+	// Write-only channel in parallel goroutine
+	go func(c chan<- Message) {
+		c <- Message{
+			PersonID: owner,
+			Message:  text,
+		}
+	}(mp.messages)
+
 	mp.sender()
 }
 
@@ -46,29 +51,28 @@ func (mp *MsgProxy) AddMessage(text, owner string) {
 func (mp *MsgProxy) sender() {
 	// Fetch a message
 	select {
-	case msg, ok := <-mp.messages:
+	case payload, ok := <-mp.messages:
 		if !ok {
 			fmt.Printf("proxy: error, channel closed")
 			break
 		}
 
-		payloadBuf := new(bytes.Buffer)
-		json.NewEncoder(payloadBuf).Encode(&msg)
-
-		req, err := http.NewRequest(http.MethodPut, serverURL, payloadBuf)
-		if err != nil {
-			fmt.Printf("proxy: error making a request (%s)\n", err.Error())
-			return
-		}
-		req.Header.Add("Content-Type", "application/json")
-
-		// Repeatable part, until done
+		// Repeatable part, until server done
 	sloop:
 		for {
+			payloadBuf := new(bytes.Buffer)
+			json.NewEncoder(payloadBuf).Encode(&payload)
+
+			req, err := http.NewRequest(http.MethodPut, serverURL, payloadBuf)
+			if err != nil {
+				fmt.Printf("proxy: error making a request (%s)\n", err.Error())
+				return
+			}
+			req.Header.Add("Content-Type", "application/json")
+
 			res, err := mp.connector.Do(req)
 			if err != nil {
 				fmt.Printf("Server down, repeat in 5s...\n")
-				fmt.Printf("FIXME: %s\n", err.Error())
 				time.Sleep(5 * time.Second)
 				continue sloop
 			}
@@ -78,14 +82,13 @@ func (mp *MsgProxy) sender() {
 
 			switch res.StatusCode {
 			case 507:
-				// FIXME body size = 0 after
-				fmt.Printf("Insufficient storage, repeat in 10s...\n")
-				time.Sleep(10 * time.Second)
+				fmt.Printf("Insufficient storage, repeat in 5s...\n")
+				time.Sleep(5 * time.Second)
 			case 200:
 				fmt.Printf("Done!\n")
 				break sloop
 			default:
-				fmt.Printf("Unknown error...\n")
+				fmt.Printf("Unknown error...%s\n", res.Status)
 				break sloop
 			}
 		}
@@ -104,23 +107,24 @@ func (mp *MsgProxy) GetMessages(owner string) {
 func (mp *MsgProxy) receiver(owner string) <-chan string {
 	payload := []byte(fmt.Sprintf(`{"person_id":"%s"}`, owner))
 
-	req, err := http.NewRequest(http.MethodGet, serverURL, bytes.NewBuffer(payload))
-	if err != nil {
-		fmt.Printf("proxy: error making a request (%s)", err.Error())
-		return nil
-	}
-	req.Header.Add("Content-Type", "application/json")
-
-	// Buffered channel so will not block
+	// Buffered (non blocking) channel
 	msgs := make(chan string, 10)
 
-	// Repeatable part, until done
+	// Repeatable part, until server done
 rloop:
 	for {
+		payloadBuf := bytes.NewBuffer(payload)
+
+		req, err := http.NewRequest(http.MethodGet, serverURL, payloadBuf)
+		if err != nil {
+			fmt.Printf("proxy: error making a request (%s)", err.Error())
+			return nil
+		}
+		req.Header.Add("Content-Type", "application/json")
+
 		res, err := mp.connector.Do(req)
 		if err != nil {
 			fmt.Printf("Server down, repeat in 5s...\n")
-			fmt.Printf("FIXME: %s\n", err.Error())
 			time.Sleep(5 * time.Second)
 			continue rloop
 		}
@@ -146,7 +150,7 @@ rloop:
 			fmt.Printf("Done!\n")
 			break rloop
 		default:
-			fmt.Printf("Unknown error...\n")
+			fmt.Printf("Unknown error...%s\n", res.Status)
 			break rloop
 		}
 	}
@@ -154,5 +158,6 @@ rloop:
 	// No writes allowed for now
 	close(msgs)
 
+	// Read-only channel in return
 	return msgs
 }
