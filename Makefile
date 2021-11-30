@@ -55,7 +55,7 @@ test:
 	go test -v ./...
 
 .PHONY: build
-build: ## Build both client and server projects for WINDOWS OS
+build: ## Build both client and server projects for WINDOWS OS without debug info
 build:
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -v -o $(BUILD)/$(CLIENT_NAME).exe $(CURDIR)/cmd/$(CLIENT_NAME)/main.go
-	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -v -o $(BUILD)/$(SERVER_NAME).exe $(CURDIR)/cmd/$(SERVER_NAME)/main.go
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -ldflags "-s -w" -v -o $(BUILD)/$(CLIENT_NAME).exe $(CURDIR)/cmd/$(CLIENT_NAME)/main.go
+	CGO_ENABLED=0 GOARCH=amd64 GOOS=windows go build -ldflags "-s -w" -v -o $(BUILD)/$(SERVER_NAME).exe $(CURDIR)/cmd/$(SERVER_NAME)/main.go
