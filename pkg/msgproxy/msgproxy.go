@@ -72,8 +72,7 @@ func (mp *MsgProxy) sender() {
 
 			res, err := mp.connector.Do(req)
 			if err != nil {
-				fmt.Printf("Server down, repeat in 5s...\n")
-				time.Sleep(5 * time.Second)
+				countdown("Server down, repeat in", 5*time.Second)
 				continue sloop
 			}
 
@@ -82,7 +81,7 @@ func (mp *MsgProxy) sender() {
 
 			switch res.StatusCode {
 			case 507:
-				fmt.Printf("Insufficient storage, repeat in 5s...\n")
+				countdown("Insufficient storage, repeat in", 5*time.Second)
 				time.Sleep(5 * time.Second)
 			case 200:
 				fmt.Printf("Done!\n")
@@ -124,8 +123,7 @@ rloop:
 
 		res, err := mp.connector.Do(req)
 		if err != nil {
-			fmt.Printf("Server down, repeat in 5s...\n")
-			time.Sleep(5 * time.Second)
+			countdown("Server down, repeat in", 5*time.Second)
 			continue rloop
 		}
 
@@ -160,4 +158,17 @@ rloop:
 
 	// Read-only channel in return
 	return msgs
+}
+
+// countdown Обратный отсчёт по секундам на той же строке
+func countdown(prompt string, d time.Duration) {
+	for range time.Tick(1 * time.Second) {
+		fmt.Printf("\r%s %s", prompt, d)
+		if d.Milliseconds() <= 0 {
+			break
+		}
+		d -= time.Second
+	}
+
+	fmt.Printf("\r%s\r", bytes.Repeat([]byte{' '}, 40))
 }
