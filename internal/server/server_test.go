@@ -23,7 +23,7 @@ func TestSave(t *testing.T) {
 	_ = srv.storage.AddMessage("TestMsg5", "User2")
 	_ = srv.storage.AddMessage("TestMsg6", "User3")
 
-	if err := srv.storage.SaveMessages(TestFilePath); err != nil {
+	if _, err := srv.storage.SaveMessages(TestFilePath); err != nil {
 		t.Errorf("error saving messages, want no errors")
 	}
 
@@ -35,7 +35,7 @@ func TestSave(t *testing.T) {
 func TestLoad(t *testing.T) {
 	srv := NewServer()
 
-	if err := srv.storage.LoadMessages(TestFilePath); err != nil {
+	if _, err := srv.storage.LoadMessages(TestFilePath); err != nil {
 		t.Errorf("error loading messages, want no errors")
 	}
 

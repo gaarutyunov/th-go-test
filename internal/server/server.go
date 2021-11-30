@@ -36,20 +36,20 @@ func NewServer() *Server {
 }
 
 func (s *Server) Start() error {
-	if err := s.storage.LoadMessages(dataPath); err != nil {
+	if n, err := s.storage.LoadMessages(dataPath); err != nil {
 		log.Printf("Error loading messages: %s", err.Error())
 	} else {
-		log.Printf("Loaded %d messages", s.storage.Length())
+		log.Printf("Loaded %d messages", n)
 	}
 
 	return s.httpServer.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	if err := s.storage.SaveMessages(dataPath); err != nil {
+	if n, err := s.storage.SaveMessages(dataPath); err != nil {
 		log.Printf("Error saving messages: %s", err.Error())
 	} else {
-		log.Printf("Saved %d messages", s.storage.Length())
+		log.Printf("Saved %d messages", n)
 	}
 
 	return s.httpServer.Shutdown(ctx)

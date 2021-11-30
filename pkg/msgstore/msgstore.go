@@ -78,10 +78,11 @@ func (ms *MsgStore) Length() int {
 }
 
 // SaveMessages Сохраняет сообщения из хранилища в файл
-func (ms *MsgStore) SaveMessages(path string) error {
+func (ms *MsgStore) SaveMessages(path string) (int, error) {
 	ms.Lock()
 	defer ms.Unlock()
 
+	l := ms.Length()
 	close(ms.messages)
 	var t []Message
 
@@ -89,23 +90,23 @@ func (ms *MsgStore) SaveMessages(path string) error {
 		t = append(t, msg)
 	}
 
-	return persist.Save(path, &t)
+	return l, persist.Save(path, &t)
 }
 
 // LoadMessages Загружает сообщения из файла в хранилище
-func (ms *MsgStore) LoadMessages(path string) error {
+func (ms *MsgStore) LoadMessages(path string) (int, error) {
 	ms.Lock()
 	defer ms.Unlock()
 
 	var t []Message
 
 	if err := persist.Load(path, &t); err != nil && !os.IsNotExist(err) {
-		return err
+		return 0, err
 	}
 
 	for _, msg := range t {
 		ms.messages <- msg
 	}
 
-	return nil
+	return ms.Length(), nil
 }
