@@ -19,6 +19,7 @@ type MsgDialog struct {
 func NewMsgDialog(connector *http.Client) *MsgDialog {
 	px := msgproxy.New(connector)
 	in := bufio.NewScanner(os.Stdin)
+
 	return &MsgDialog{
 		connector: connector,
 		proxy:     px,
@@ -53,6 +54,5 @@ func (d *MsgDialog) Choose() {
 
 func (d *MsgDialog) input() string {
 	d.scanner.Scan()
-	line := d.scanner.Text()
-	return line
+	return d.scanner.Text()
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestNewAddGet(t *testing.T) {
+func TestNew(t *testing.T) {
 	// New
 	mp := New(&http.Client{})
 

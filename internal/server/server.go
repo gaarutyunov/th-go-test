@@ -13,13 +13,16 @@ type Server struct {
 	storage    *msgstore.MsgStore
 }
 
-const dataPath = "./server.json"
+const (
+	serverAddr = "0.0.0.0:8080"
+	dataPath   = "./server.json"
+)
 
 func NewServer() *Server {
 	storage := msgstore.New()
 	handler := NewMsgHandler(storage)
 	server := &http.Server{
-		Addr:           "0.0.0.0:8080",
+		Addr:           serverAddr,
 		Handler:        handler,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
