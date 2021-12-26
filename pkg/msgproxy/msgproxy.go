@@ -82,7 +82,6 @@ func (mp *MsgProxy) sender() {
 			switch res.StatusCode {
 			case 507:
 				countdown("Insufficient storage, repeat in", 5*time.Second)
-				time.Sleep(5 * time.Second)
 			case 200:
 				fmt.Printf("Done!\n")
 				break sloop
