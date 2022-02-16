@@ -13,12 +13,12 @@
 *.out
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 
 .idea
 .vscode
-/build
-/bin
+build/
+bin/
 dist/
 
 .DS_Store
